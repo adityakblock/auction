@@ -483,13 +483,13 @@ pub struct StartAuction<'info> {
 #[instruction(data_bump:u8, auction_meta_bump:u8, bid_bump:u8, prev_bid_bump:u8, auction_valid_till:i64)]
 pub struct MakeBid<'info> {
     #[account( seeds = [b"data".as_ref()], bump = data_bump)]
-    pub data_acc: Account<'info, Data>,
+    pub data_acc: Box<Account<'info, Data>>,
 
     #[account(
         seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), auction_valid_till.to_be_bytes().as_ref()],
         bump = auction_meta_bump,
     )]
-    pub auction_meta: Account<'info, Auction>,
+    pub auction_meta: Box<Account<'info, Auction>>,
 
     #[account(init,
     payer = bid_maker,
@@ -514,7 +514,7 @@ pub struct MakeBid<'info> {
     seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), present_bidder.to_account_info().key.as_ref(), (auction_meta.bids_placed).to_be_bytes().as_ref()],
     bump = prev_bid_bump)]
 
-    pub present_bid_acc: Account<'info, Bids>,
+    pub present_bid_acc: Box<Account<'info, Bids>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
