@@ -5,7 +5,7 @@ use anchor_spl::{
 
 };
 
-declare_id!("AJE15T85W6pDECo5rbwh8ZRYNa1jVggP6R6J73kw3j16");
+declare_id!("BHfXvtdMoQEFCFbpZ6P4Vv6S3AdbmHcG8CLPfTLZ9RLF");
 
 #[program]
 pub mod auction {
@@ -82,73 +82,76 @@ pub mod auction {
         _prev_bid_bump:u8,
         _auction_valid_till: i64,
         bid_amount:u64 ) -> Result<()> {
-        // msg!{"Print Accounts"}
-        // msg!{"bid_acc {}", ctx.accounts.bid_account.key()}
-        // let auction_meta = &mut ctx.accounts.auction_meta;
-        // let bid_account = &mut ctx.accounts.bid_account;
+        msg!{"Print Accounts"}
+        msg!{"bid_acc {}", ctx.accounts.bid_account.key()}
+        let auction_meta = &mut ctx.accounts.auction_meta;
+        let bid_account = &mut ctx.accounts.bid_account;
 
-        // // let transfer_ix = anchor_lang::solana_program::system_instruction::transfer(
-        // //     ctx.accounts.bid_maker.key,
-        // //     bid_account.to_account_info().key,
-        // //     bid_amount,
-        // // );
+        let transfer_ix = anchor_lang::solana_program::system_instruction::transfer(
+            ctx.accounts.bid_maker.key,
+            bid_account.to_account_info().key,
+            bid_amount,
+        );
 
-        // // anchor_lang::solana_program::program::invoke(
-        // //     &transfer_ix,
-        // //     &[
-        // //         ctx.accounts.bid_maker.to_account_info(),
-        // //         bid_account.to_account_info(),
-        // //     ],
-        // // )?;
+        anchor_lang::solana_program::program::invoke(
+            &transfer_ix,
+            &[
+                ctx.accounts.bid_maker.to_account_info(),
+                bid_account.to_account_info(),
+            ],
+        )?;
 
-        // bid_account.bid_maker = ctx.accounts.bid_maker.key();
-        // bid_account.nft_mint = ctx.accounts.nft_mint.key();
-        // bid_account.nft_owner = ctx.accounts.nft_owner.key();
+        bid_account.bid_maker = ctx.accounts.bid_maker.key();
+        bid_account.nft_mint = ctx.accounts.nft_mint.key();
+        bid_account.nft_owner = ctx.accounts.nft_owner.key();
         
-        // bid_account.bid_amount = bid_amount;
+        bid_account.bid_amount = bid_amount;
 
-        // bid_account.auction = auction_meta.key();
+        bid_account.auction = auction_meta.key();
     
-        // bid_account.bid_number = auction_meta.bids_placed + 1;
+        bid_account.bid_number = auction_meta.bids_placed + 1;
     
-        // bid_account.bid_bump = bid_bump;
+        bid_account.bid_bump = bid_bump;
         
-        // if auction_meta.auction_complete == true {
-        //     return Err(ErrorCode::AuctionComplete.into())
-        // }
+        if auction_meta.auction_complete == true {
+            return Err(ErrorCode::AuctionComplete.into())
+        }
 
-        // if auction_meta.bids_placed == 0 {
+        if auction_meta.bids_placed == 0 {
 
-        //     if bid_amount < auction_meta.min_req_amount {
-        //         return Err(ErrorCode::LessBidAmount.into())
+            if bid_amount < auction_meta.min_req_amount {
+                return Err(ErrorCode::LessBidAmount.into())
 
-        //     }
-        // } else {
+            }
+        } else {
 
-        //     if bid_amount < auction_meta.present_bid_amount {
-        //         return Err(ErrorCode::LessThanPreviousBid.into())
-        //     }
-        // }
+            if bid_amount < auction_meta.present_bid_amount {
+                return Err(ErrorCode::LessThanPreviousBid.into())
+            }
+        }
 
-        // if auction_meta.bids_placed > 0 {
+        msg!("CP1");
+        if auction_meta.bids_placed > 0 {
 
-        //     msg!("TODO RETURN MONEY");
-        //        //TRANSFER THE SOL FROM THE ACTIVE BID ACCOUNT TO THE PREVIOUS BIDDER
-        //     if ctx.accounts.present_bidder.key() != auction_meta.present_bidder {
-        //         return Err(ErrorCode::IncorrectBidder.into());
+            msg!("TODO RETURN MONEY");
+               //TRANSFER THE SOL FROM THE ACTIVE BID ACCOUNT TO THE PREVIOUS BIDDER
+            if ctx.accounts.present_bidder.key() != auction_meta.present_bidder {
+                return Err(ErrorCode::IncorrectBidder.into());
                 
-        //     }
-        //     // **ctx.accounts.present_bid_acc.to_account_info().try_borrow_mut_lamports()? -= auction_meta.present_bid_amount;
-        //     // **ctx.accounts.present_bidder.to_account_info().try_borrow_mut_lamports()? += auction_meta.present_bid_amount;
+            }
+            **ctx.accounts.present_bid_acc.to_account_info().try_borrow_mut_lamports()? -= auction_meta.present_bid_amount;
+            **ctx.accounts.present_bidder.to_account_info().try_borrow_mut_lamports()? += auction_meta.present_bid_amount;
          
-        // }
+        }
 
-        // //UPDATE THE CURRENT BIDDER AND GET THE SOL
-        // auction_meta.present_bidder = ctx.accounts.bid_maker.key();
-        // auction_meta.present_bid_amount = bid_amount;
-        // auction_meta.present_bid_acc = ctx.accounts.bid_account.key();
-        // auction_meta.bids_placed = auction_meta.bids_placed + 1;
-        // auction_meta.bids_made = true;
+        //UPDATE THE CURRENT BIDDER AND GET THE SOL
+        auction_meta.present_bidder = ctx.accounts.bid_maker.key();
+        auction_meta.present_bid_amount = bid_amount;
+        auction_meta.present_bid_acc = ctx.accounts.bid_account.key();
+        auction_meta.bids_placed = auction_meta.bids_placed + 1;
+        auction_meta.bids_made = true;
+
+        auction_meta.reload()?;
 
         msg!("HERE");
 
@@ -336,7 +339,7 @@ pub struct Data {
 }
 
 #[account]
-pub struct Auction {
+pub struct NFTAuction {
 
     pub nft_owner: Pubkey,
 
@@ -445,7 +448,7 @@ pub struct StartAuction<'info> {
     seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), auction_valid_till.to_be_bytes().as_ref()],
     bump = auction_meta_bump,
     space = 700)]
-    pub auction_meta: Box<Account<'info, Auction>>,
+    pub auction_meta: Box<Account<'info, NFTAuction>>,
 
 
     #[account(mut)]
@@ -485,18 +488,18 @@ pub struct MakeBid<'info> {
     #[account( seeds = [b"data".as_ref()], bump = data_bump)]
     pub data_acc: Box<Account<'info, Data>>,
 
-    #[account(
+    #[account(mut,
         seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), auction_valid_till.to_be_bytes().as_ref()],
-        bump = auction_meta_bump,
+        bump
     )]
-    pub auction_meta: Box<Account<'info, Auction>>,
+    pub auction_meta: Box<Account<'info, NFTAuction>>,
 
     #[account(init,
     payer = bid_maker,
     seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), bid_maker.to_account_info().key.as_ref(), (auction_meta.bids_placed + 1).to_be_bytes().as_ref()],
-    bump = bid_bump,
+    bump,
     space = 1000)]
-    pub bid_account: Account<'info, Bids>,
+    pub bid_account: Box<Account<'info, Bids>>,
     
     // #[account(constraint = nft_owner.key() == auction_meta.nft_owner)]
     pub nft_owner: AccountInfo<'info>,
@@ -512,7 +515,7 @@ pub struct MakeBid<'info> {
 
     #[account(mut,
     seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), present_bidder.to_account_info().key.as_ref(), (auction_meta.bids_placed).to_be_bytes().as_ref()],
-    bump = prev_bid_bump)]
+    bump)]
 
     pub present_bid_acc: Box<Account<'info, Bids>>,
 
@@ -531,10 +534,11 @@ pub struct Redeem<'info> {
     pub data_acc: Box<Account<'info, Data>>,
 
     #[account(
+        mut,
         seeds = [nft_owner.to_account_info().key.as_ref(), nft_mint.to_account_info().key.as_ref(), auction_valid_till.to_be_bytes().as_ref()],
         bump = auction_meta_bump,
     )]
-    pub auction_meta: Box<Account<'info, Auction>>,
+    pub auction_meta: Box<Account<'info, NFTAuction>>,
 
     #[account(mut ,constraint = nft_owner.key() == auction_meta.nft_owner)]
     pub nft_owner: AccountInfo<'info>,
