@@ -151,7 +151,6 @@ pub mod auction {
         auction_meta.bids_placed = auction_meta.bids_placed + 1;
         auction_meta.bids_made = true;
 
-        auction_meta.reload()?;
 
         msg!("HERE");
 
